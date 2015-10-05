@@ -13,6 +13,7 @@ from systematic.shell import Script
 from systematic.log import Logger
 
 from ansible import __version__ as ansible_version
+from ansible import utils
 from ansible.constants import DEFAULT_MODULE_NAME, DEFAULT_MODULE_PATH, DEFAULT_MODULE_ARGS, \
                               DEFAULT_TIMEOUT, DEFAULT_HOST_LIST, DEFAULT_PRIVATE_KEY_FILE, \
                               DEFAULT_FORKS, DEFAULT_REMOTE_PORT, DEFAULT_PATTERN, \
@@ -103,6 +104,11 @@ class GenericAnsibleScript(Script):
             self.mode = 'become %s ' % args.become_user
         elif args.su:
             self.mode = 'su %s ' % args.su_user
+
+        if args.vault_password_file:
+            args.vault_pass = utils.read_vault_file(args.vault_password_file)
+        else:
+            args.vault_pass = False
 
         return args
 
@@ -198,6 +204,7 @@ class PlaybookScript(GenericAnsibleScript):
         self.add_argument('-a', '--args', default=DEFAULT_MODULE_ARGS, help='Module arguments')
         self.add_argument('-c', '--colors', action='store_true', help='Show output with colors')
         self.add_argument('--show-facts', action='store_true', help='Show ansible facts in results')
+        self.add_argument('--vault-password-file', default=None, help='Vault password path')
 
     def parse_args(self):
         """Parse arguments and run playbook
@@ -232,7 +239,7 @@ class PlaybookScript(GenericAnsibleScript):
             check=False,
             diff=False,
             any_errors_fatal=False,
-            vault_password=False,
+            vault_password=args.vault_pass,
             force_handlers=False,
             show_colors=args.colors,
             show_facts=args.show_facts,
